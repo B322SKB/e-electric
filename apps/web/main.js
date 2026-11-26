@@ -1,4 +1,5 @@
 import {createClient} from './client.mjs';
+import {symbolDefinition} from './library.mjs';
 const client=createClient();let revision=0,busy=false;
 // Browser-only demonstrator; project format follows the EDM v0.1 contract.
 const uuid=()=>crypto.randomUUID();
@@ -6,9 +7,10 @@ const canvas=document.querySelector('#canvas'),status=document.querySelector('#s
 const tree=document.querySelector('#tree'),props=document.querySelector('#properties');
 const makeProject=()=>({schemaVersion:'0.1.0',id:uuid(),name:'New Electrical Project',pages:[{id:uuid(),name:'Control 1',kind:'schematic',symbols:[]}],devices:[],connections:[]});
 let project=makeProject(),tool='select',selected=null,wireStart=null,drag=null;
-const symbols={coil:'▣',switch:'⟋',motor:'M',terminal:'○'};
+const icons={coil:'▣',switch:'⟋',motor:'M',terminal:'○'};
 const grid=n=>Math.round(n/20)*20;
 const findDevice=id=>project.devices.find(d=>d.id===id);
+const terminalPosition=(key,index,count)=>key==='motor'&&count===4?(index<3?{x:-40,y:(index-1)*16}:{x:40,y:0}):{x:index===0?-40:40,y:0};
 const svg=(tag,attrs={})=>{const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);return el};
 const point=e=>{const p=canvas.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(canvas.getScreenCTM().inverse())};
 function setStatus(message){status.textContent=message}
@@ -21,9 +23,9 @@ function render(){
   const g=svg('g',{class:'symbol'+(selected===s.id?' selected':''),transform:`translate(${s.position.x},${s.position.y})`});
   const box=svg('rect',{x:-34,y:-24,width:68,height:48,rx:5,fill:'#1e293b',stroke:'#60a5fa','stroke-width':2});
   g.append(box);
-  const icon=svg('text',{x:0,y:8,'text-anchor':'middle',fill:'#e2e8f0','font-size':24});icon.textContent=symbols[s.symbolKey]||'?';g.append(icon);
+  const icon=svg('text',{x:0,y:8,'text-anchor':'middle',fill:'#e2e8f0','font-size':24});icon.textContent=icons[s.symbolKey]||'?';g.append(icon);
   const label=svg('text',{x:0,y:-33,'text-anchor':'middle',class:'tag'});label.textContent=device.tag;g.append(label);
-  device.terminals.forEach((t,i)=>{const x=i===0?-40:40;const pin=svg('circle',{cx:x,cy:0,r:6,class:'pin','data-device':device.id,'data-terminal':t.id});g.append(pin);positions.set(device.id+'/'+t.id,{x:s.position.x+x,y:s.position.y});});
+  device.terminals.forEach((t,i)=>{const pos=terminalPosition(s.symbolKey,i,device.terminals.length);const pin=svg('circle',{cx:pos.x,cy:pos.y,r:6,class:'pin','data-device':device.id,'data-terminal':t.id});g.append(pin);positions.set(device.id+'/'+t.id,{x:s.position.x+pos.x,y:s.position.y+pos.y});});
   g.addEventListener('pointerdown',e=>{
    if(e.target.classList.contains('pin')){e.stopPropagation();pinClick(e.target.dataset.device,e.target.dataset.terminal);return}
    if(tool!=='select')return;
@@ -49,8 +51,8 @@ function pinClick(deviceId,terminalId){
 }
 canvas.addEventListener('pointerdown',e=>{
  if(e.target!==canvas||tool==='select'||tool==='wire')return;
- const p=point(e),x=grid(p.x),y=grid(p.y),tag='-'+({coil:'K',switch:'S',motor:'M',terminal:'X'}[tool])+String(project.devices.length+1);
- const device={id:uuid(),tag,terminals:['1','2'].map(name=>({id:uuid(),name}))};
+ const p=point(e),x=grid(p.x),y=grid(p.y),definition=symbolDefinition(tool),tag='-'+definition.prefix+String(project.devices.length+1);
+ const device={id:uuid(),tag,terminals:definition.terminals.map(name=>({id:uuid(),name}))};
  project.devices.push(device);project.pages[0].symbols.push({id:uuid(),deviceId:device.id,symbolKey:tool,position:{x,y}});
  selected=null;setStatus('Placed '+tag);render();
 });

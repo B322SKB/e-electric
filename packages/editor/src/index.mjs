@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {validateProject} from '../../edm/src/index.mjs';
+import {symbolDefinition} from '../../library/src/index.mjs';
 
 const copy = p => structuredClone(p);
 function checked(p) {
@@ -23,7 +24,7 @@ export function addDevice(project,pageId,{tag,symbolKey,x,y}) {
   if (!page) throw new Error('Page not found');
   if (!tag?.trim() || !symbolKey?.trim()) throw new Error('Tag and symbol key required');
   const id=randomUUID();
-  const terminals=['1','2'].map(name=>({id:randomUUID(),name}));
+  const terminals=symbolDefinition(symbolKey).terminals.map(name=>({id:randomUUID(),name}));
   p.devices.push({id,tag:tag.trim(),terminals});
   page.symbols.push({id:randomUUID(),deviceId:id,symbolKey,position:snapToGrid({x,y})});
   return checked(p);

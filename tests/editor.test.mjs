@@ -14,6 +14,11 @@ test('adds page and device with stable representation and terminals', () => {
   assert.deepEqual(p.pages[0].symbols[0].position, {x:20,y:40});
   assert.equal(p.devices[0].terminals.length, 2);
 });
+test('motor device keeps the catalog named four-terminal definition', () => {
+  const page = addPage(createProject('Test'), 'Control');
+  const project = addDevice(page, page.pages[0].id, {tag:'-M1',symbolKey:'motor',x:0,y:0});
+  assert.deepEqual(project.devices[0].terminals.map(terminal => terminal.name), ['U','V','W','PE']);
+});
 test('connection endpoints must exist', () => {
   let p = addPage(createProject('Test'),'Control');
   p = addDevice(p,p.pages[0].id,{tag:'-K1',symbolKey:'coil',x:0,y:0});

@@ -138,5 +138,14 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
   await reopened.getByText('Imported JSON project (structural checks only)').waitFor();
   assert.deepEqual(await reopened.locator('.tag').allTextContents(), ['-K1B', '-S2']);
   assert.equal(await reopened.locator('line.wire').count(), 1);
+
+  await reopened.locator('[data-tool="motor"]').click();
+  await reopened.locator('#canvas').click({ position: { x: 620, y: 160 } });
+  await reopened.locator('[data-tool="select"]').click();
+  const motorSymbol = reopened.locator('.symbol').nth(2);
+  await motorSymbol.click();
+  assert.equal(await motorSymbol.locator('.pin').count(), 4);
+  assert.deepEqual(await motorSymbol.locator('.pin').evaluateAll(pins => pins.map(pin => [pin.getAttribute('cx'), pin.getAttribute('cy')])), [['-40','-16'],['-40','0'],['-40','16'],['40','0']]);
+  assert.match(await reopened.locator('#properties .hint').textContent(), /Terminals: U, V, W, PE/);
   assert.deepEqual(pageErrors, []);
 });
