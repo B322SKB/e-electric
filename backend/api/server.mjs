@@ -1,3 +1,4 @@
+import {serveEditor} from './static.mjs';
 import {createServer} from 'node:http';
 import {validateProject} from '../../packages/edm/src/index.mjs';
 const idPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -6,6 +7,7 @@ export function createApi(store){
  const send=(status,data)=>{res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(data))};
  try {
  const path=new URL(req.url,'http://localhost').pathname;
+ if(req.method==='GET'&&await serveEditor(path,res))return;
  if(req.method==='GET'&&path==='/health')return send(200,{status:'ok'});
  if(req.method==='GET'&&path==='/api/projects')return send(200,await store.list());
  const id=path.match(/^\/api\/projects\/([^/]+)$/)?.[1];

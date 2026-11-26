@@ -1,0 +1,2 @@
+# Integrated local POC
+From repository root run node backend/api/demo.mjs and open http://localhost:8081. This demo loses saved projects on restart. For PostgreSQL use the setup in 0005-api.md and open the same address. Save server writes a revision; Open server lists projects and asks for a project number. Conflicts are reported, not overwritten. JSON imports are treated as new project identities. No authentication, no public deployment. Browser and database restart verification are pending.
