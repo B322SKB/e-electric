@@ -1,0 +1,1 @@
+import {createApi} from './server.mjs';import {createStore} from '../../packages/store/src/index.mjs';createApi(createStore()).listen(8081,'127.0.0.1',()=>console.log('Demo: http://localhost:8081 (volatile storage)'));
