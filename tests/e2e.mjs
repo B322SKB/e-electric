@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ import { chromium } from '@playwright/test';
 
 test('alpha editor saves, survives restart, imports exports, and rejects stale tab writes', async t => {
   const dataDir = await mkdtemp(join(tmpdir(), 'e-electric-e2e-'));
+  const backupDir = await mkdtemp(join(tmpdir(), 'e-electric-backup-'));
   const browser = await chromium.launch({ headless: true });
   const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
   let server;
@@ -28,10 +29,14 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
     };
     server.stdout.on('data', chunk => {
       output += chunk.toString();
-      const match = output.match(/E-Electric Alpha: http:\/\/localhost:(\d+)/);
+      const match = output.match(/E-Electric Alpha: http:\/\/([^:\s]+):(\d+)/);
       if (match && !settled) {
+        if (match[1] !== '127.0.0.1') {
+          fail(new Error(`Alpha must bind to loopback, got ${match[1]}`));
+          return;
+        }
         settled = true;
-        resolve(`http://127.0.0.1:${match[1]}`);
+        resolve(`http://${match[1]}:${match[2]}`);
       }
     });
     server.stderr.on('data', chunk => { output += chunk.toString(); });
@@ -62,6 +67,7 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
     await stopServer();
     await browser.close();
     await rm(dataDir, { recursive: true, force: true });
+    await rm(backupDir, { recursive: true, force: true });
   });
 
   let baseURL = await startServer();
@@ -100,6 +106,9 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
   await context.close();
   context = undefined;
   await stopServer();
+  await cp(dataDir, backupDir, { recursive: true });
+  await rm(dataDir, { recursive: true, force: true });
+  await cp(backupDir, dataDir, { recursive: true });
   baseURL = await startServer();
   context = await browser.newContext({ acceptDownloads: true });
   const reopened = await context.newPage();

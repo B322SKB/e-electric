@@ -11,5 +11,5 @@ server.on('error', error => {
 });
 server.listen(port, '127.0.0.1', () => {
   const address = server.address();
-  console.log(`E-Electric Alpha: http://localhost:${address.port}\nData: ${dir}`);
+  console.log(`E-Electric Alpha: http://${address.address}:${address.port}\nData: ${dir}`);
 });
