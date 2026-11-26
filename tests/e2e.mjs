@@ -1,27 +1,51 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
-import { createApi } from '../backend/api/server.mjs';
-import { fileStore } from '../backend/api/file-store.mjs';
 
 test('alpha editor saves, survives restart, imports exports, and rejects stale tab writes', async t => {
   const dataDir = await mkdtemp(join(tmpdir(), 'e-electric-e2e-'));
   const browser = await chromium.launch({ headless: true });
+  const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
   let server;
   let context;
-  const startServer = async () => {
-    server = createApi(fileStore(dataDir));
-    await new Promise((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(0, '127.0.0.1', resolve);
+  const startServer = () => new Promise((resolve, reject) => {
+    server = spawn(process.execPath, ['backend/api/alpha.mjs'], {
+      cwd: repoRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, EE_DATA_DIR: dataDir, PORT: '0' }
     });
-    return `http://127.0.0.1:${server.address().port}`;
-  };
+    let output = '';
+    let settled = false;
+    const fail = error => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    server.stdout.on('data', chunk => {
+      output += chunk.toString();
+      const match = output.match(/E-Electric Alpha: http:\/\/localhost:(\d+)/);
+      if (match && !settled) {
+        settled = true;
+        resolve(`http://127.0.0.1:${match[1]}`);
+      }
+    });
+    server.stderr.on('data', chunk => { output += chunk.toString(); });
+    server.once('error', fail);
+    server.once('exit', (code, signal) => fail(new Error(`Alpha process exited (${code ?? signal}): ${output}`)));
+  });
   const stopServer = async () => {
-    if (server?.listening) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    const child = server;
+    server = undefined;
+    if (child && child.exitCode === null && child.signalCode === null) {
+      const exited = new Promise(resolve => child.once('exit', resolve));
+      child.kill();
+      await exited;
+    }
   };
   const openSavedProject = async page => {
     page.on('dialog', async dialog => await dialog.accept(dialog.type() === 'prompt' ? '1' : undefined));
