@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createProject} from '../packages/edm/src/index.mjs';
+import {createStore} from '../packages/store/src/index.mjs';
+import {symbolDefinition} from '../packages/library/src/index.mjs';
+test('save and reopen without aliasing',()=>{const s=createStore(),p=createProject('A');s.save(p,0);p.name='B';assert.equal(s.get(p.id).project.name,'A')});
+test('stale revisions rejected',()=>{const s=createStore(),p=createProject('A');s.save(p,0);assert.throws(()=>s.save(p,0),/revision/i)});
+test('invalid project rejected',()=>{const s=createStore();assert.throws(()=>s.save({},0))});
+test('catalog provides named coil terminals',()=>{assert.deepEqual(symbolDefinition('coil').terminals,['A1','A2'])});
+test('unknown symbol rejected',()=>{assert.throws(()=>symbolDefinition('unknown'))});
