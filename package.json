@@ -5,6 +5,7 @@
     "test:e2e": "node --test tests/e2e.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.65.1"
+    "@playwright/test": "^1.65.1",
+    "pg": "^8.16.3"
   }
 }

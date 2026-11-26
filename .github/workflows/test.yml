@@ -5,6 +5,22 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: e_electric_test
+          POSTGRES_USER: ee_test
+          POSTGRES_PASSWORD: ee_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ee_test -d e_electric_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      EE_TEST_DATABASE_URL: postgres://ee_test:ee_ci_test@127.0.0.1:5432/e_electric_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
