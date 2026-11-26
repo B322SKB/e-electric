@@ -1,0 +1,23 @@
+# Secrets and private engineering project data
+.env
+.env.*
+!.env.example
+*.ecp
+*.eplan
+*.zw1
+*.elk
+*.p8
+data/
+customer-projects/
+secrets/
+*.db
+*.sqlite
+*.sqlite3
+
+# Build artifacts
+node_modules/
+dist/
+target/
+bin/
+obj/
+.DS_Store
