@@ -7,7 +7,7 @@ Install Node.js 22 LTS. Download ZIP of branch release/v0.1-alpha, extract to a 
 2. Save server; expect revision 1. Open server and select the saved project.
 3. Modify and save; expect revision 2.
 4. Stop server (Ctrl+C), restart, open project and verify drawing and wires.
-5. Export JSON; import as a new project; save.
+5. Print/save the drawing as an A4 landscape PDF. Export JSON; import as a new project; save.
 6. Open same saved project in two browser tabs; save in first, then second; expect 409 in second, no overwrite.
 7. Record failures with step, expected/actual, screenshot, browser console and terminal output. Do not include secrets or client projects.
 

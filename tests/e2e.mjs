@@ -147,5 +147,15 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
   assert.equal(await motorSymbol.locator('.pin').count(), 4);
   assert.deepEqual(await motorSymbol.locator('.pin').evaluateAll(pins => pins.map(pin => [pin.getAttribute('cx'), pin.getAttribute('cy')])), [['-40','-16'],['-40','0'],['-40','16'],['40','0']]);
   assert.match(await reopened.locator('#properties .hint').textContent(), /Terminals: U, V, W, PE/);
+  await reopened.evaluate(() => { window.__printWasCalled = false; window.print = () => { window.__printWasCalled = true; }; });
+  await reopened.getByRole('button', { name: 'Print / Save as PDF' }).click();
+  assert.equal(await reopened.evaluate(() => window.__printWasCalled), true);
+  await reopened.emulateMedia({ media: 'print' });
+  assert.equal(await reopened.locator('#print-title').textContent(), 'New Electrical Project');
+  assert.equal(await reopened.locator('#canvas').evaluate(canvas => getComputedStyle(canvas).backgroundColor), 'rgb(255, 255, 255)');
+  const pdfPath = join(dataDir, 'schematic.pdf');
+  await reopened.pdf({ path: pdfPath, format: 'A4', landscape: true, printBackground: true });
+  assert.equal((await readFile(pdfPath)).subarray(0, 5).toString('ascii'), '%PDF-');
+  await reopened.emulateMedia({ media: 'screen' });
   assert.deepEqual(pageErrors, []);
 });

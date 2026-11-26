@@ -35,6 +35,7 @@ function render(){
  }
  for(const c of project.connections){const a=positions.get(c.from.deviceId+'/'+c.from.terminalId),b=positions.get(c.to.deviceId+'/'+c.to.terminalId);if(a&&b){const wire=svg('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'wire'});canvas.insertBefore(wire,canvas.firstChild);}}
  tree.textContent=`${project.name} · ${project.devices.length} devices · ${project.connections.length} wires`;
+ document.querySelector('#print-title').textContent=project.name;
  const symbol=page.symbols.find(s=>s.id===selected),device=symbol&&findDevice(symbol.deviceId);
  props.replaceChildren();
  if(device){const label=document.createElement('label');label.textContent='Device tag';const input=document.createElement('input');input.value=device.tag;input.addEventListener('change',()=>{const v=input.value.trim();if(!v||project.devices.some(d=>d!==device&&d.tag===v)){setStatus('Tag required and must be unique');input.value=device.tag;return}device.tag=v;render()});props.append(label,input);const detail=document.createElement('p');detail.className='hint';detail.textContent=`Type: ${symbol.symbolKey} · Terminals: ${device.terminals.map(t=>t.name).join(', ')}`;props.append(detail)}
@@ -61,6 +62,7 @@ canvas.addEventListener('pointerup',()=>drag=null);
 document.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>{tool=b.dataset.tool;wireStart=null;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b));setStatus('Tool: '+tool)}));
 document.querySelector('#new').addEventListener('click',()=>{if(!confirm('Discard current drawing?'))return;project=makeProject();revision=0;wireStart=null;selected=null;render()});
 document.querySelector('#save').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='e-electric-project.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+document.querySelector('#export-pdf').addEventListener('click',()=>window.print());
 document.querySelector('#load').addEventListener('click',()=>document.querySelector('#file').click());
 document.querySelector('#file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());if(data.schemaVersion!=='0.1.0'||!Array.isArray(data.pages)||!Array.isArray(data.devices)||!Array.isArray(data.connections)||!data.pages[0]?.symbols)throw new Error('Invalid project structure');data.id=uuid();project=data;revision=0;wireStart=null;selected=null;render();setStatus('Imported JSON project (structural checks only)')}catch(err){setStatus('Import error: '+err.message)}e.target.value=''});
 render();
