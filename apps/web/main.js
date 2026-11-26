@@ -1,3 +1,5 @@
+import {createClient} from './client.mjs';
+const client=createClient();let revision=0,busy=false;
 // Browser-only demonstrator; project format follows the EDM v0.1 contract.
 const uuid=()=>crypto.randomUUID();
 const canvas=document.querySelector('#canvas'),status=document.querySelector('#status');
@@ -55,8 +57,12 @@ canvas.addEventListener('pointerdown',e=>{
 canvas.addEventListener('pointermove',e=>{if(!drag)return;const p=point(e),s=project.pages[0].symbols.find(s=>s.id===drag.id);if(s){s.position={x:grid(p.x-drag.dx),y:grid(p.y-drag.dy)};render()}});
 canvas.addEventListener('pointerup',()=>drag=null);
 document.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>{tool=b.dataset.tool;wireStart=null;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b));setStatus('Tool: '+tool)}));
-document.querySelector('#new').addEventListener('click',()=>{if(!confirm('Discard current drawing?'))return;project=makeProject();selected=null;render()});
+document.querySelector('#new').addEventListener('click',()=>{if(!confirm('Discard current drawing?'))return;project=makeProject();revision=0;wireStart=null;selected=null;render()});
 document.querySelector('#save').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='e-electric-project.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
 document.querySelector('#load').addEventListener('click',()=>document.querySelector('#file').click());
-document.querySelector('#file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());if(data.schemaVersion!=='0.1.0'||!Array.isArray(data.pages)||!Array.isArray(data.devices)||!Array.isArray(data.connections)||!data.pages[0]?.symbols)throw new Error('Invalid project structure');project=data;selected=null;render();setStatus('Imported JSON project (structural checks only)')}catch(err){setStatus('Import error: '+err.message)}e.target.value=''});
+document.querySelector('#file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());if(data.schemaVersion!=='0.1.0'||!Array.isArray(data.pages)||!Array.isArray(data.devices)||!Array.isArray(data.connections)||!data.pages[0]?.symbols)throw new Error('Invalid project structure');data.id=uuid();project=data;revision=0;wireStart=null;selected=null;render();setStatus('Imported JSON project (structural checks only)')}catch(err){setStatus('Import error: '+err.message)}e.target.value=''});
 render();
+
+async function serverAction(fn){if(busy)return;busy=true;const id=project.id;try{await fn(id)}catch(e){setStatus(e.message)}finally{busy=false}}
+document.querySelector('#server-save').addEventListener('click',()=>serverAction(async id=>{const record=await client.save(structuredClone(project),revision);if(project.id===id){revision=record.revision;setStatus('Snapshot saved, revision '+revision)}}));
+document.querySelector('#server-open').addEventListener('click',()=>serverAction(async id=>{const list=await client.list();if(!list.length){setStatus('No saved projects');return}const choice=prompt(list.map((p,i)=>(i+1)+': '+p.name).join('\n')+'\nChoose project number');if(choice===null)return;const item=list[Number(choice)-1];if(!item)throw new Error('Invalid selection');if(!confirm('Replace current drawing?'))return;const record=await client.open(item.id);if(project.id!==id)return;if(!record.project.pages[0])throw new Error('Project has no drawing page');project=record.project;revision=record.revision;selected=null;wireStart=null;drag=null;render();setStatus('Opened revision '+revision)}));
