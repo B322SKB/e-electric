@@ -16,6 +16,8 @@ secrets/
 
 # Build artifacts
 node_modules/
+.npm-cache/
+.playwright-browsers/
 dist/
 target/
 bin/

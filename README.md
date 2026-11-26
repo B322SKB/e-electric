@@ -18,9 +18,12 @@ Independent industrial CAD/CAE engineering platform — early proof of concept.
 - `infrastructure/docker-compose.yml`: development PostgreSQL
 
 ## Test
-Node.js 22+:
+Node.js 22+ automated checks (Node and Playwright):
 ```sh
-node --test tests/edm.test.mjs
+npm ci
+npx playwright install chromium
+npm test
+npm run test:e2e
 ```
 Docker development database:
 ```sh

@@ -11,4 +11,4 @@ Install Node.js 22 LTS. Download ZIP of branch release/v0.1-alpha, extract to a 
 6. Open same saved project in two browser tabs; save in first, then second; expect 409 in second, no overwrite.
 7. Record failures with step, expected/actual, screenshot, browser console and terminal output. Do not include secrets or client projects.
 
-Data lives in data/alpha. Stop server before copying this folder for backup. Local file storage is a temporary single-process alternative to PostgreSQL. No authentication, no remote exposure, no certified electrical design, no EPLAN import. Browser runtime and Windows restart behavior must be verified before acceptance. Run node --test tests/*.test.mjs for automated checks.
+Data lives in data/alpha. Stop server before copying this folder for backup. Local file storage is a temporary single-process alternative to PostgreSQL. No authentication, no remote exposure, no certified electrical design, no EPLAN import. Browser runtime and Windows restart behavior must be verified before acceptance. Run `npm ci`, `npx playwright install chromium`, `npm test`, and `npm run test:e2e` for automated checks.

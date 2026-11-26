@@ -1,4 +1,4 @@
-name: POC tests
+name: Node and browser tests
 on: [push, pull_request]
 permissions:
   contents: read
@@ -10,4 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/*.test.mjs
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run test:e2e
