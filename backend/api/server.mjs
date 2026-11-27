@@ -1,14 +1,22 @@
 import {serveEditor} from './static.mjs';
 import {createServer} from 'node:http';
 import {validateProject} from '../../packages/edm/src/index.mjs';
+import {createHash,timingSafeEqual} from 'node:crypto';
 const idPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export function createApi(store){
+const tokenDigest=value=>createHash('sha256').update(value).digest();
+export function createApi(store,{apiToken=process.env.EE_API_TOKEN}={}){
+ if(apiToken!==undefined&&(typeof apiToken!=='string'||apiToken.length<32))throw new Error('EE_API_TOKEN must contain at least 32 characters');
+ const expectedTokenDigest=apiToken===undefined?null:tokenDigest(`Bearer ${apiToken}`);
  return createServer(async(req,res)=>{
- const send=(status,data)=>{res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(data))};
+ const send=(status,data,headers={})=>{res.writeHead(status,{'content-type':'application/json','cache-control':'no-store',...headers});res.end(JSON.stringify(data))};
  try {
  const path=new URL(req.url,'http://localhost').pathname;
  if(req.method==='GET'&&await serveEditor(path,res))return;
  if(req.method==='GET'&&path==='/health')return send(200,{status:'ok'});
+ if(expectedTokenDigest&&(path==='/api/projects'||path.startsWith('/api/projects/'))){
+  const providedDigest=tokenDigest(req.headers.authorization??'');
+  if(!timingSafeEqual(expectedTokenDigest,providedDigest))return send(401,{error:'Authentication required'},{'www-authenticate':'Bearer'});
+ }
  if(req.method==='GET'&&path==='/api/projects')return send(200,await store.list());
  const id=path.match(/^\/api\/projects\/([^/]+)$/)?.[1];
  if(!id||!idPattern.test(id))return send(404,{error:'Not found'});

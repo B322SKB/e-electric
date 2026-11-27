@@ -1,6 +1,6 @@
 import {createClient} from './client.mjs';
 import {symbolDefinition} from './library.mjs';
-const client=createClient();let revision=0,busy=false;
+const client=createClient('',()=>document.querySelector('#api-token').value);let revision=0,busy=false;
 // Browser-only demonstrator; project format follows the EDM v0.1 contract.
 const uuid=()=>crypto.randomUUID();
 const canvas=document.querySelector('#canvas'),status=document.querySelector('#status');

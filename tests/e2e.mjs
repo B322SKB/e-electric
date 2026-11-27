@@ -7,6 +7,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
+const apiToken = 'e-electric-e2e-token-0123456789abcdef';
+
 test('alpha editor saves, survives restart, imports exports, and rejects stale tab writes', async t => {
   const dataDir = await mkdtemp(join(tmpdir(), 'e-electric-e2e-'));
   const backupDir = await mkdtemp(join(tmpdir(), 'e-electric-backup-'));
@@ -18,7 +20,7 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
     server = spawn(process.execPath, ['backend/api/alpha.mjs'], {
       cwd: repoRoot,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, EE_DATA_DIR: dataDir, PORT: '0' }
+      env: { ...process.env, EE_DATA_DIR: dataDir, EE_API_TOKEN: apiToken, PORT: '0' }
     });
     let output = '';
     let settled = false;
@@ -71,11 +73,13 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
   });
 
   let baseURL = await startServer();
+  assert.equal((await fetch(`${baseURL}/api/projects`)).status, 401, 'project API must reject requests without the shared token');
   context = await browser.newContext({ acceptDownloads: true });
   const page = await context.newPage();
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto(baseURL);
+  await page.getByRole('textbox', { name: 'Shared API token' }).fill(apiToken);
   await page.getByRole('button', { name: 'Contactor coil' }).click();
   await page.locator('#canvas').click({ position: { x: 180, y: 160 } });
   await page.locator('[data-tool="switch"]').click();
@@ -114,6 +118,7 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
   const reopened = await context.newPage();
   reopened.on('pageerror', error => pageErrors.push(error.message));
   await reopened.goto(baseURL);
+  await reopened.getByRole('textbox', { name: 'Shared API token' }).fill(apiToken);
   await openSavedProject(reopened);
   await reopened.getByText('Opened revision 2').waitFor({ timeout: 5000 }).catch(async () => {
     assert.fail(`Open failed: ${await reopened.locator('#status').textContent()}; projects=${JSON.stringify(await (await fetch(`${baseURL}/api/projects`)).json())}`);
@@ -124,6 +129,7 @@ test('alpha editor saves, survives restart, imports exports, and rejects stale t
   const staleTab = await context.newPage();
   staleTab.on('pageerror', error => pageErrors.push(error.message));
   await staleTab.goto(baseURL);
+  await staleTab.getByRole('textbox', { name: 'Shared API token' }).fill(apiToken);
   await openSavedProject(staleTab);
   await staleTab.getByText('Opened revision 2').waitFor();
   await reopened.locator('.symbol').first().click();
